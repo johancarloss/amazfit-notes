@@ -3,7 +3,7 @@
 [![Python](https://img.shields.io/badge/Python-3.12-blue?logo=python&logoColor=white)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Zepp OS](https://img.shields.io/badge/Zepp_OS-5.0-orange)](https://docs.zepp.com)
-[![Tests](https://img.shields.io/badge/Tests-26_passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/Tests-26_passing-brightgreen)](#tests)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
 Read your **Obsidian** markdown notes on your **Amazfit smartwatch** — with full formatting, offline reading, and instant sync.
