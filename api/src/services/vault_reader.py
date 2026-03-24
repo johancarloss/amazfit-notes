@@ -22,7 +22,7 @@ class VaultReader:
 
         resolved = (self._vault / cleaned).resolve()
 
-        if not str(resolved).startswith(str(self._vault)):
+        if not resolved.is_relative_to(self._vault):
             raise PermissionError("Access denied")
 
         top_folder = cleaned.split("/")[0]
@@ -65,7 +65,7 @@ class VaultReader:
         for line in content.split("\n"):
             stripped = line.strip()
             if stripped and not stripped.startswith("#") and stripped != "---":
-                text = stripped.lstrip("- ").lstrip("> ").lstrip("* ")
+                text = stripped.removeprefix("- ").removeprefix("> ").removeprefix("* ")
                 return text[:max_chars]
         return ""
 

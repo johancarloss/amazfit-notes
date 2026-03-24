@@ -197,7 +197,7 @@ class MarkdownParser:
 
         flush_text()
 
-        return blocks if blocks else []
+        return blocks
 
     def _extract_list_item_text(self, children: list[dict]) -> str:
         """Extract text from list item's first child (block_text or paragraph)."""
