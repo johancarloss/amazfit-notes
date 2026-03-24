@@ -178,6 +178,17 @@ zeus login && zeus preview   # Scan QR with Zepp app
 cd api && pytest tests/ -v   # 26 tests
 ```
 
+## Documentation
+
+Detailed technical docs explaining how every component works:
+
+- **[Architecture Overview](docs/architecture.md)** — full system data flow
+- **[API Deep Dive](docs/api.md)** — endpoints, authentication, vault reader
+- **[Markdown Parser](docs/markdown-parser.md)** — AST parsing, token conversion, inline formatting
+- **[Watch App](docs/watch-app.md)** — Zepp OS rendering engine, BLE communication, AMOLED optimization
+- **[Offline Cache](docs/offline-cache.md)** — cache-first strategy, stale-while-revalidate
+- **[Infrastructure](docs/infrastructure.md)** — DNS, SSL, Nginx, systemd, webhook sync
+
 ## License
 
 [MIT](LICENSE)
