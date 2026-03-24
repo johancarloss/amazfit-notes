@@ -5,10 +5,11 @@ import { COLORS } from "../shared/colors";
 import { SCREEN, CONTENT } from "../shared/layout";
 import { buildList } from "../shared/list-builder";
 import { MSG } from "../../lib/communication";
+import { fetchWithCache } from "../../lib/fetch-with-cache";
 
 Page(
   BasePage({
-    state: { folder: "", notes: [] },
+    state: { folder: "", notes: [], offline: false },
 
     onInit(params) {
       if (params) {
@@ -35,20 +36,31 @@ Page(
       });
 
       var self = this;
-      this.request({ method: MSG.GET_FOLDER, params: { path: this.state.folder } })
-        .then(function (data) {
-          var result = data.result || data;
+      fetchWithCache(
+        this, MSG.GET_FOLDER, { path: this.state.folder },
+        function (result, isOffline) {
+          self.state.offline = isOffline;
           self.state.notes = (result.items || []).filter(function (i) {
             return i.type === "note";
           });
           self.renderList();
-        })
-        .catch(function (err) { self.showError(err); });
+        },
+        function (err) { self.showError(err); }
+      );
     },
 
     renderList() {
       deleteWidget(this.loadingWidget);
       var notes = this.state.notes;
+
+      if (this.state.offline) {
+        createWidget(widget.TEXT, {
+          x: CONTENT.MARGIN_X, y: CONTENT.MARGIN_TOP + 36,
+          w: CONTENT.WIDTH, h: 20,
+          text: "Offline — cache local", text_size: 12,
+          color: COLORS.TEXT_DIM, align_h: align.CENTER_H,
+        });
+      }
 
       if (notes.length === 0) {
         createWidget(widget.TEXT, {
@@ -60,7 +72,7 @@ Page(
         return;
       }
 
-      var listY = CONTENT.MARGIN_TOP + 50;
+      var listY = CONTENT.MARGIN_TOP + (this.state.offline ? 60 : 50);
       var items = notes.map(function (n) {
         return { title: n.name, subtitle: n.modified || "" };
       });

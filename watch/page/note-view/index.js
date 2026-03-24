@@ -4,15 +4,11 @@ import { COLORS } from "../shared/colors";
 import { SCREEN, CONTENT } from "../shared/layout";
 import { renderMarkdownBlocks } from "../shared/markdown-renderer";
 import { MSG } from "../../lib/communication";
+import { fetchWithCache } from "../../lib/fetch-with-cache";
 
 Page(
   BasePage({
-    state: {
-      path: "",
-      title: "",
-      blocks: [],
-      loading: true,
-    },
+    state: { path: "", title: "", blocks: [], offline: false },
 
     onInit(params) {
       if (params) {
@@ -35,25 +31,17 @@ Page(
         text_style: text_style.WRAP,
       });
 
-      this.fetchNote();
-    },
-
-    fetchNote() {
       var self = this;
-
-      this.request({
-        method: MSG.GET_NOTE_BLOCKS,
-        params: { path: this.state.path, max_blocks: 150 },
-      })
-        .then(function (data) {
-          var result = data.result || data;
+      fetchWithCache(
+        this, MSG.GET_NOTE_BLOCKS,
+        { path: this.state.path, max_blocks: 150 },
+        function (result, isOffline) {
+          self.state.offline = isOffline;
           self.state.blocks = result.blocks || [];
-          self.state.loading = false;
           self.renderNote();
-        })
-        .catch(function (err) {
-          self.showError(err);
-        });
+        },
+        function (err) { self.showError(err); }
+      );
     },
 
     renderNote() {
@@ -75,6 +63,16 @@ Page(
         scroll_enable: true,
         z_index: 0,
       });
+
+      // Offline indicator at top of note
+      if (this.state.offline) {
+        container.createWidget(widget.TEXT, {
+          x: CONTENT.MARGIN_X, y: 10,
+          w: CONTENT.WIDTH, h: 20,
+          text: "Offline — cache local", text_size: 12,
+          color: COLORS.TEXT_DIM, align_h: align.CENTER_H,
+        });
+      }
 
       renderMarkdownBlocks(container, this.state.blocks, CONTENT.WIDTH);
 
