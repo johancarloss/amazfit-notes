@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Literal
 
 from src.schemas.folder import FolderItem
 from src.schemas.note import NoteMetadata
@@ -11,7 +12,7 @@ class VaultReader:
         self._allowed = allowed_folders
 
         if not self._vault.is_dir():
-            raise ValueError(f"Vault path does not exist: {self._vault}")
+            raise ValueError("Vault path does not exist. Check AMAZFIT_VAULT_PATH.")
 
     def _validate_path(self, relative_path: str) -> Path:
         """Resolve path and ensure it's within vault and allowed folders."""
@@ -22,11 +23,11 @@ class VaultReader:
         resolved = (self._vault / cleaned).resolve()
 
         if not str(resolved).startswith(str(self._vault)):
-            raise PermissionError(f"Path traversal blocked: {relative_path}")
+            raise PermissionError("Access denied")
 
         top_folder = cleaned.split("/")[0]
         if top_folder not in self._allowed:
-            raise PermissionError(f"Folder not allowed: {top_folder}")
+            raise PermissionError("Access denied")
 
         return resolved
 
@@ -35,9 +36,21 @@ class VaultReader:
         mtime = path.stat().st_mtime
         return datetime.fromtimestamp(mtime, tz=timezone.utc).isoformat()
 
-    def _count_notes(self, folder: Path) -> int:
-        """Count .md files recursively in a folder."""
-        return sum(1 for f in folder.rglob("*.md") if f.is_file())
+    def _count_notes_direct(self, folder: Path) -> int:
+        """Count .md files in direct children only (not recursive)."""
+        return sum(1 for f in folder.glob("*.md") if f.is_file())
+
+    def _extract_title_fast(self, filepath: Path) -> str:
+        """Extract title by reading only the first few lines, not the whole file."""
+        try:
+            with open(filepath, "r", encoding="utf-8") as f:
+                for line in f:
+                    stripped = line.strip()
+                    if stripped.startswith("# ") and not stripped.startswith("##"):
+                        return stripped[2:].strip()
+        except OSError:
+            pass
+        return filepath.stem
 
     def _extract_title(self, content: str, filename: str) -> str:
         """Extract title from first H1 heading or fall back to filename."""
@@ -67,7 +80,7 @@ class VaultReader:
                         name=folder_name,
                         path=folder_name,
                         type="folder",
-                        note_count=self._count_notes(folder_path),
+                        note_count=self._count_notes_direct(folder_path),
                         modified=self._get_modified(folder_path),
                     )
                 )
@@ -78,7 +91,7 @@ class VaultReader:
         folder = self._validate_path(relative_path)
 
         if not folder.is_dir():
-            raise FileNotFoundError(f"Not a folder: {relative_path}")
+            raise FileNotFoundError("Folder not found")
 
         items: list[FolderItem] = []
 
@@ -92,15 +105,14 @@ class VaultReader:
                         name=entry.name,
                         path=rel,
                         type="folder",
-                        note_count=self._count_notes(entry),
+                        note_count=self._count_notes_direct(entry),
                         modified=self._get_modified(entry),
                     )
                 )
             elif entry.is_file() and entry.suffix == ".md":
-                content = entry.read_text(encoding="utf-8")
                 items.append(
                     FolderItem(
-                        name=self._extract_title(content, entry.name),
+                        name=self._extract_title_fast(entry),
                         path=rel,
                         type="note",
                         modified=self._get_modified(entry),
@@ -114,10 +126,10 @@ class VaultReader:
         note_path = self._validate_path(relative_path)
 
         if not note_path.is_file():
-            raise FileNotFoundError(f"Note not found: {relative_path}")
+            raise FileNotFoundError("Note not found")
 
         if note_path.suffix != ".md":
-            raise ValueError(f"Not a markdown file: {relative_path}")
+            raise ValueError("Not a markdown file")
 
         content = note_path.read_text(encoding="utf-8")
         stat = note_path.stat()

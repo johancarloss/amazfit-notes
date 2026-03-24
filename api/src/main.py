@@ -12,7 +12,7 @@ async def lifespan(app: FastAPI):
     settings = Settings()
     vault = Path(settings.vault_path)
     if not vault.is_dir():
-        raise RuntimeError(f"Vault not found: {vault}")
+        raise RuntimeError("Vault directory not found. Check AMAZFIT_VAULT_PATH.")
     yield
 
 
@@ -20,8 +20,10 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="Amazfit Notes API",
         version="1.0.0",
-        description="Serves Obsidian markdown notes as structured blocks for Amazfit smartwatch",
         lifespan=lifespan,
+        docs_url=None,
+        redoc_url=None,
+        openapi_url=None,
     )
     app.include_router(v1_router)
     return app

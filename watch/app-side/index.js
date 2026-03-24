@@ -1,7 +1,5 @@
 import { BaseSideService } from "@zeppos/zml/base-side";
-
-var API_BASE = "https://amazfit-notes.duckdns.org/api/v1";
-var API_KEY = "REDACTED_API_KEY";
+import { API_BASE, API_KEY } from "../config.local";
 
 async function fetchFromApi(endpoint, res) {
   var url = API_BASE + endpoint;

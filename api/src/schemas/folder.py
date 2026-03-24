@@ -1,10 +1,12 @@
+from typing import Literal
+
 from pydantic import BaseModel
 
 
 class FolderItem(BaseModel):
     name: str
     path: str
-    type: str  # "folder" or "note"
+    type: Literal["folder", "note"]
     note_count: int = 0
     modified: str  # ISO 8601
 

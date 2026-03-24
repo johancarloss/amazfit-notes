@@ -1,10 +1,14 @@
-def test_health(client):
-    response = client.get("/api/v1/health")
+def test_health(client, auth_headers):
+    response = client.get("/api/v1/health", headers=auth_headers)
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "ok"
-    assert data["vault_exists"] is True
-    assert data["note_count"] > 0
+    assert data["vault_ok"] is True
+
+
+def test_health_requires_auth(client):
+    response = client.get("/api/v1/health")
+    assert response.status_code == 422
 
 
 def test_folders_requires_auth(client):

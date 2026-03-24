@@ -187,8 +187,6 @@ class MarkdownParser:
                 current_text_parts.append("\n")
             elif ctype == "link":
                 current_text_parts.append(self._extract_text(child.get("children", [])))
-            elif ctype == "strikethrough":
-                current_text_parts.append(self._extract_text(child.get("children", [])))
             elif ctype == "image":
                 alt = child.get("attrs", {}).get("alt", "")
                 current_text_parts.append(f"[img: {alt}]" if alt else "[img]")

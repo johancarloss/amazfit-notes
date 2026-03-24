@@ -12,6 +12,7 @@ api/.pytest_cache/
 watch/node_modules/
 watch/dist/
 watch/.zeus/
+watch/config.local.js
 *.zab
 
 # IDE
