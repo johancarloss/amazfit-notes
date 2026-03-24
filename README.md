@@ -19,10 +19,38 @@ Write notes in Obsidian on any device. Push to GitHub. Open the app on your wris
 ## How It Works
 
 ```
-  Obsidian ──push──▸ GitHub ──webhook──▸ API ──HTTPS──▸ Phone ──BLE──▸ Watch
-                                         │
-                                   Parses markdown
-                                   into typed blocks
+                                  ┌──────────────┐
+                                  │   Obsidian   │
+                                  │ (any device) │
+                                  └──────┬───────┘
+                                         │ git push
+                                         v
+                                  ┌──────────────┐
+                                  │    GitHub    │
+                                  └──────┬───────┘
+                                         │ webhook (instant)
+                                         v
+              ┌─────────────────────────────────────────────────────────┐
+              │  Server                                                 │
+              │  ┌─────────────────────────────────────────────────┐    │
+              │  │  FastAPI  ←── git pull ←── Obsidian vault (.md) │    │
+              │  │  (parser + REST API)                            │    │
+              │  └──────────────────┬──────────────────────────────┘    │
+              │                     │ HTTPS (SSL)                       │
+              └─────────────────────┼───────────────────────────────────┘
+                                    v
+                            ┌──────────────┐
+                            │  Zepp App    │
+                            │  (phone)     │
+                            │  Side Service│
+                            └──────┬───────┘
+                                   │ BLE
+                                   v
+                            ┌──────────────┐
+                            │  Amazfit     │
+                            │  Active 2    │
+                            │  (466×466)   │
+                            └──────────────┘
 ```
 
 1. **Write** notes in Obsidian → push to GitHub
