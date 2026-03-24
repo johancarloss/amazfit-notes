@@ -1,0 +1,11 @@
+{
+  "name": "amazfit-notes-watch",
+  "version": "1.0.0",
+  "description": "Obsidian markdown notes reader for Amazfit Active 2 Round",
+  "main": "app.js",
+  "author": "Johan",
+  "license": "MIT",
+  "dependencies": {
+    "@zeppos/zml": "^0.0.43"
+  }
+}

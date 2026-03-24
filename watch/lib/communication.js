@@ -1,0 +1,7 @@
+// Message protocol constants
+export var MSG = {
+  GET_WATCH_NOTES: "GET_WATCH_NOTES",
+  GET_ROOT_FOLDERS: "GET_ROOT_FOLDERS",
+  GET_FOLDER: "GET_FOLDER",
+  GET_NOTE_BLOCKS: "GET_NOTE_BLOCKS",
+};

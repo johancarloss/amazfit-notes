@@ -1,0 +1,60 @@
+{
+  "configVersion": "v2",
+  "app": {
+    "appId": 1048576,
+    "appName": "Amazfit Notes",
+    "appType": "app",
+    "version": {
+      "code": 1,
+      "name": "1.0.0"
+    },
+    "icon": "icon.png",
+    "vender": "Johan",
+    "description": "Read Obsidian markdown notes on your watch"
+  },
+  "permissions": [],
+  "runtime": {
+    "apiVersion": {
+      "compatible": "4.0",
+      "target": "4.0",
+      "minVersion": "4.0"
+    }
+  },
+  "targets": {
+    "amazfit-active-2": {
+      "module": {
+        "page": {
+          "pages": [
+            "page/home/index",
+            "page/folders/index",
+            "page/notes/index",
+            "page/note-view/index"
+          ]
+        },
+        "app-side": {
+          "path": "app-side/index"
+        }
+      },
+      "platforms": [
+        { "name": "amazfit-active-2", "deviceSource": 8913152 },
+        { "name": "amazfit-active-2-v2", "deviceSource": 8913153 },
+        { "name": "amazfit-active-2-v3", "deviceSource": 8913155 },
+        { "name": "amazfit-active-2-v4", "deviceSource": 8913159 },
+        { "name": "amazfit-active-2-v5", "deviceSource": 10092800 },
+        { "name": "amazfit-active-2-v6", "deviceSource": 10092801 },
+        { "name": "amazfit-active-2-v7", "deviceSource": 10092803 },
+        { "name": "amazfit-active-2-v8", "deviceSource": 10092807 }
+      ],
+      "designWidth": 466
+    }
+  },
+  "i18n": {
+    "en-US": {
+      "appName": "Amazfit Notes"
+    },
+    "pt-BR": {
+      "appName": "Amazfit Notes"
+    }
+  },
+  "defaultLanguage": "en-US"
+}

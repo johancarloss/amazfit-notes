@@ -1,0 +1,18 @@
+[Unit]
+Description=Amazfit Notes API
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/amazfit-notes-api
+Environment=PATH=/opt/amazfit-notes-api/.venv/bin:/usr/bin
+ExecStart=/opt/amazfit-notes-api/.venv/bin/uvicorn src.main:app --host 127.0.0.1 --port 8100
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
