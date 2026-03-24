@@ -2,11 +2,10 @@ import { BaseSideService } from "@zeppos/zml/base-side";
 import { API_BASE, API_KEY } from "../config.local";
 
 async function fetchFromApi(endpoint, res) {
-  var url = API_BASE + endpoint;
-  console.log("Fetching:", url);
+  const url = API_BASE + endpoint;
 
   try {
-    var response = await fetch({
+    const response = await fetch({
       url: url,
       method: "GET",
       headers: {
@@ -15,27 +14,23 @@ async function fetchFromApi(endpoint, res) {
       },
     });
 
-    var body = response.body;
-    var data = typeof body === "string" ? JSON.parse(body) : body;
-    console.log("API OK");
+    const body = response.body;
+    const data = typeof body === "string" ? JSON.parse(body) : body;
     res(null, { result: data });
   } catch (err) {
-    console.log("API error:", err);
-    res(null, { result: { error: err ? err.message || String(err) : "Fetch failed" } });
+    res(null, {
+      result: { error: err ? err.message || String(err) : "Fetch failed" },
+    });
   }
 }
 
 AppSideService(
   BaseSideService({
-    onInit() {
-      console.log("Side Service init");
-    },
+    onInit() {},
 
     onRequest(req, res) {
-      var method = req.method;
-      var params = req.params || {};
-
-      console.log("Request:", method);
+      const method = req.method;
+      const params = req.params || {};
 
       if (method === "GET_WATCH_NOTES") {
         fetchFromApi("/folders/Watch", res);
@@ -44,7 +39,7 @@ AppSideService(
       } else if (method === "GET_FOLDER") {
         fetchFromApi("/folders/" + (params.path || ""), res);
       } else if (method === "GET_NOTE_BLOCKS") {
-        var endpoint = "/notes/" + (params.path || "");
+        let endpoint = "/notes/" + (params.path || "");
         if (params.max_blocks) {
           endpoint += "?max_blocks=" + params.max_blocks;
         }
@@ -54,8 +49,6 @@ AppSideService(
       }
     },
 
-    onDestroy() {
-      console.log("Side Service destroyed");
-    },
+    onDestroy() {},
   })
 );
