@@ -36,9 +36,9 @@ class VaultReader:
         mtime = path.stat().st_mtime
         return datetime.fromtimestamp(mtime, tz=timezone.utc).isoformat()
 
-    def _count_notes_direct(self, folder: Path) -> int:
-        """Count .md files in direct children only (not recursive)."""
-        return sum(1 for f in folder.glob("*.md") if f.is_file())
+    def _count_notes(self, folder: Path) -> int:
+        """Count .md files recursively in a folder."""
+        return sum(1 for f in folder.rglob("*.md") if f.is_file())
 
     def _extract_title_fast(self, filepath: Path) -> str:
         """Extract title by reading only the first few lines, not the whole file."""
@@ -80,7 +80,7 @@ class VaultReader:
                         name=folder_name,
                         path=folder_name,
                         type="folder",
-                        note_count=self._count_notes_direct(folder_path),
+                        note_count=self._count_notes(folder_path),
                         modified=self._get_modified(folder_path),
                     )
                 )
@@ -105,7 +105,7 @@ class VaultReader:
                         name=entry.name,
                         path=rel,
                         type="folder",
-                        note_count=self._count_notes_direct(entry),
+                        note_count=self._count_notes(entry),
                         modified=self._get_modified(entry),
                     )
                 )
