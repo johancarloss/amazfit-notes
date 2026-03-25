@@ -1,4 +1,4 @@
-import { createWidget, widget, deleteWidget } from "@zos/ui";
+import { createWidget, widget, deleteWidget, align } from "@zos/ui";
 import { BasePage } from "@zeppos/zml/base-page";
 import { COLORS } from "../shared/colors";
 import { SCREEN, CONTENT } from "../shared/layout";
@@ -6,7 +6,7 @@ import { renderMarkdownBlocks } from "../shared/markdown-renderer";
 import { showError, createLoadingWidget } from "../shared/ui-helpers";
 import { MSG } from "../../lib/communication";
 import { fetchWithCache } from "../../lib/fetch-with-cache";
-import { align } from "@zos/ui";
+import { keepAlive, saveSession, clearSession } from "../../lib/session";
 
 Page(
   BasePage({
@@ -25,6 +25,14 @@ Page(
     },
 
     build() {
+      keepAlive();
+
+      // Save session so app restores to this note after screen off
+      saveSession("page/note-view/index", JSON.stringify({
+        path: this.state.path,
+        title: this.state.title,
+      }));
+
       this.loadingWidget = createLoadingWidget("Carregando nota...");
       const self = this;
 
@@ -71,6 +79,11 @@ Page(
 
       renderMarkdownBlocks(container, this.state.blocks, CONTENT.WIDTH);
       createWidget(widget.PAGE_SCROLLBAR, {});
+    },
+
+    onDestroy() {
+      // Clear session when user manually exits (back button)
+      clearSession();
     },
   })
 );

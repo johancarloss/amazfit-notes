@@ -7,12 +7,14 @@ import { buildList } from "../shared/list-builder";
 import { showError, showOfflineIndicator, createLoadingWidget } from "../shared/ui-helpers";
 import { MSG } from "../../lib/communication";
 import { fetchWithCache } from "../../lib/fetch-with-cache";
+import { keepAlive } from "../../lib/session";
 
 Page(
   BasePage({
     state: { path: "", items: [], offline: false },
 
     onInit(params) {
+      keepAlive();
       if (params) {
         try { this.state.path = JSON.parse(params).path || ""; }
         catch (e) { this.state.path = ""; }

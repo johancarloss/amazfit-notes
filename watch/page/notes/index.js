@@ -7,12 +7,14 @@ import { buildList } from "../shared/list-builder";
 import { showError, showOfflineIndicator, createLoadingWidget } from "../shared/ui-helpers";
 import { MSG } from "../../lib/communication";
 import { fetchWithCache } from "../../lib/fetch-with-cache";
+import { keepAlive } from "../../lib/session";
 
 Page(
   BasePage({
     state: { folder: "", notes: [], offline: false },
 
     onInit(params) {
+      keepAlive();
       if (params) {
         try { this.state.folder = JSON.parse(params).folder || ""; }
         catch (e) { this.state.folder = ""; }

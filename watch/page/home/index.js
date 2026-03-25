@@ -1,5 +1,5 @@
 import { createWidget, widget, align, deleteWidget } from "@zos/ui";
-import { push } from "@zos/router";
+import { push, replace } from "@zos/router";
 import { BasePage } from "@zeppos/zml/base-page";
 import { COLORS } from "../shared/colors";
 import { SCREEN, CONTENT } from "../shared/layout";
@@ -7,12 +7,23 @@ import { buildList } from "../shared/list-builder";
 import { showError, showOfflineIndicator, createLoadingWidget } from "../shared/ui-helpers";
 import { MSG } from "../../lib/communication";
 import { fetchWithCache } from "../../lib/fetch-with-cache";
+import { keepAlive, getSession, clearSession, saveSession } from "../../lib/session";
 
 Page(
   BasePage({
     state: { notes: [], offline: false },
 
     build() {
+      keepAlive();
+      clearSession(); // Home = no session to restore
+
+      // Check if there's a saved session (user was reading a note)
+      const session = getSession();
+      if (session && session.url) {
+        replace({ url: session.url, params: session.params || "" });
+        return;
+      }
+
       createWidget(widget.TEXT, {
         x: CONTENT.MARGIN_X, y: CONTENT.MARGIN_TOP,
         w: CONTENT.WIDTH, h: 36,
