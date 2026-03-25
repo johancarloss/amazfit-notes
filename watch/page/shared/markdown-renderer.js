@@ -15,7 +15,7 @@ const BLOCK_STYLES = {
   code_block: { size: 15, color: COLORS.CODE, marginTop: 8, marginBottom: 8 },
   blockquote: { size: 18, color: COLORS.BLOCKQUOTE_TEXT, marginTop: 6, marginBottom: 6 },
   hr: { size: 0, color: COLORS.BORDER_HR, marginTop: 10, marginBottom: 10 },
-  table: { size: 15, color: COLORS.TEXT_PRIMARY, marginTop: 2, marginBottom: 2 },
+  table: { size: 16, color: COLORS.TEXT_PRIMARY, marginTop: 4, marginBottom: 4 },
   checkbox_checked: { size: 18, color: COLORS.CHECKBOX_DONE, marginTop: 2, marginBottom: 2 },
   checkbox_unchecked: { size: 18, color: COLORS.CHECKBOX_TODO, marginTop: 2, marginBottom: 2 },
   bold: { size: 18, color: 0xffcc00, marginTop: 2, marginBottom: 2 },
@@ -56,8 +56,8 @@ function estimateTextHeight(text, fontSize, availableWidth) {
  * Render parsed markdown blocks as native Zepp OS widgets
  * inside a scrollable VIEW_CONTAINER.
  */
-export function renderMarkdownBlocks(container, blocks, containerWidth) {
-  let currentY = CONTENT.MARGIN_TOP;
+export function renderMarkdownBlocks(container, blocks, containerWidth, extraTopOffset) {
+  let currentY = CONTENT.MARGIN_TOP + (extraTopOffset || 0);
 
   for (const block of blocks) {
     const style = BLOCK_STYLES[block.type];
@@ -75,6 +75,25 @@ export function renderMarkdownBlocks(container, blocks, containerWidth) {
         color: style.color,
       });
       currentY += 1 + style.marginBottom;
+      continue;
+    }
+
+    // Table card (dark background with key: value lines)
+    if (block.type === "table") {
+      const h = estimateTextHeight(block.text, style.size, textWidth - 24);
+      container.createWidget(widget.FILL_RECT, {
+        x: textX, y: currentY - 4,
+        w: textWidth, h: h + 16,
+        color: COLORS.BG_CARD, radius: 8,
+      });
+      container.createWidget(widget.TEXT, {
+        x: textX + 12, y: currentY + 4,
+        w: textWidth - 24, h: h,
+        text: block.text, text_size: style.size,
+        color: style.color, text_style: text_style.WRAP,
+        line_space: 6,
+      });
+      currentY += h + 16 + style.marginBottom;
       continue;
     }
 
