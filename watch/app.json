@@ -12,7 +12,7 @@
     "vender": "Johan",
     "description": "Read Obsidian markdown notes on your watch"
   },
-  "permissions": [],
+  "permissions": ["device:os.local_storage"],
   "runtime": {
     "apiVersion": {
       "compatible": "4.0",

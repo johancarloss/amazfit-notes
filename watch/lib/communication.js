@@ -1,4 +1,6 @@
-import { localStorage } from "@zos/storage";
+import { LocalStorage } from "@zos/storage";
+
+const localStorage = new LocalStorage();
 
 export const MSG = {
   GET_WATCH_NOTES: "GET_WATCH_NOTES",
