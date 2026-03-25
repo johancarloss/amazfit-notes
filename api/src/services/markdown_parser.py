@@ -118,14 +118,14 @@ class MarkdownParser:
     ) -> list[MarkdownBlock]:
         """Convert paragraph with inline formatting awareness.
 
-        Splits paragraph into sub-blocks when it contains bold, italic,
-        or inline code segments. This allows the watch to render each
-        segment with its own visual style.
+        Bold, italic, and strikethrough stay inline (no line break).
+        Only code_inline gets its own block (needs background styling).
+        If the entire paragraph is a single styled element, it gets its own type.
         """
         if not children:
             return []
 
-        # If paragraph has only one child, check if it's a styled element
+        # Single-child paragraphs: use specific block type
         if len(children) == 1:
             child = children[0]
             ctype = child.get("type", "")
@@ -146,7 +146,17 @@ class MarkdownParser:
                 if text:
                     return [MarkdownBlock(type=BlockType.STRIKETHROUGH, text=text, indent=indent)]
 
-        # For mixed content, split into segments
+        # Check if paragraph contains any code_inline
+        has_code = any(c.get("type") == "codespan" for c in children)
+
+        if not has_code:
+            # No inline code — keep everything as one paragraph (no line breaks)
+            text = self._extract_text(children)
+            if text:
+                return [MarkdownBlock(type=BlockType.PARAGRAPH, text=text, indent=indent)]
+            return []
+
+        # Has inline code — split only at code boundaries
         blocks: list[MarkdownBlock] = []
         current_text_parts: list[str] = []
 
@@ -164,28 +174,13 @@ class MarkdownParser:
                 code = child.get("raw", child.get("text", ""))
                 if code:
                     blocks.append(MarkdownBlock(type=BlockType.CODE_INLINE, text=code, indent=indent))
-            elif ctype == "strong":
-                flush_text()
-                text = self._extract_text(child.get("children", []))
-                if text:
-                    blocks.append(MarkdownBlock(type=BlockType.BOLD, text=text, indent=indent))
-            elif ctype == "emphasis":
-                flush_text()
-                text = self._extract_text(child.get("children", []))
-                if text:
-                    blocks.append(MarkdownBlock(type=BlockType.ITALIC, text=text, indent=indent))
-            elif ctype == "strikethrough":
-                flush_text()
-                text = self._extract_text(child.get("children", []))
-                if text:
-                    blocks.append(MarkdownBlock(type=BlockType.STRIKETHROUGH, text=text, indent=indent))
             elif ctype in ("text", "raw"):
                 current_text_parts.append(child.get("raw", child.get("text", "")))
             elif ctype == "softbreak":
                 current_text_parts.append(" ")
             elif ctype == "linebreak":
                 current_text_parts.append("\n")
-            elif ctype == "link":
+            elif ctype in ("strong", "emphasis", "strikethrough", "link"):
                 current_text_parts.append(self._extract_text(child.get("children", [])))
             elif ctype == "image":
                 alt = child.get("attrs", {}).get("alt", "")
@@ -239,39 +234,54 @@ class MarkdownParser:
         return blocks
 
     def _convert_table(self, token: dict) -> list[MarkdownBlock]:
-        """Convert table to simplified text rows.
+        """Convert table to card layout for small round displays.
+
+        Instead of pipe-separated columns, each row becomes a card
+        with "Header: Value" lines. Much more readable on 394px width.
 
         mistune 3.x structure:
-        table -> table_head -> [table_cell, ...] (flat, no table_row)
+        table -> table_head -> [table_cell, ...]
         table -> table_body -> table_row -> [table_cell, ...]
         """
-        blocks: list[MarkdownBlock] = []
+        headers: list[str] = []
+        rows: list[list[str]] = []
 
         for child in token.get("children", []):
             child_type = child.get("type", "")
 
             if child_type == "table_head":
-                # Head cells are direct children (no row wrapper)
-                cells: list[str] = []
                 for cell in child.get("children", []):
-                    cells.append(self._extract_text(cell.get("children", [])))
-                if cells:
-                    blocks.append(
-                        MarkdownBlock(type=BlockType.TABLE, text=" | ".join(cells))
-                    )
-                    blocks.append(
-                        MarkdownBlock(type=BlockType.HORIZONTAL_RULE, text="")
-                    )
+                    headers.append(self._extract_text(cell.get("children", [])))
 
             elif child_type == "table_body":
                 for row in child.get("children", []):
                     cells = []
                     for cell in row.get("children", []):
                         cells.append(self._extract_text(cell.get("children", [])))
-                    if cells:
-                        blocks.append(
-                            MarkdownBlock(type=BlockType.TABLE, text=" | ".join(cells))
-                        )
+                    rows.append(cells)
+
+        if not headers and not rows:
+            return []
+
+        blocks: list[MarkdownBlock] = []
+
+        for row in rows:
+            # Each row becomes "Header: Value" lines joined by newline
+            lines: list[str] = []
+            for i, cell in enumerate(row):
+                header = headers[i] if i < len(headers) else ""
+                if header:
+                    lines.append(f"{header}: {cell}")
+                else:
+                    lines.append(cell)
+            blocks.append(
+                MarkdownBlock(type=BlockType.TABLE, text="\n".join(lines))
+            )
+            blocks.append(MarkdownBlock(type=BlockType.HORIZONTAL_RULE, text=""))
+
+        # Remove trailing separator
+        if blocks and blocks[-1].type == BlockType.HORIZONTAL_RULE:
+            blocks.pop()
 
         return blocks
 

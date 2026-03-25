@@ -23,18 +23,24 @@ def test_paragraph():
 
 def test_inline_formatting():
     parser = MarkdownParser()
-    blocks, _ = parser.parse("**bold** and *italic* and `code` and ~~strike~~")
 
+    # Bold/italic inline stay in the same paragraph (no line break)
+    blocks, _ = parser.parse("Text with **bold** and *italic* here.")
+    assert len(blocks) == 1
+    assert blocks[0].type.value == "paragraph"
+    assert "bold" in blocks[0].text
+    assert "italic" in blocks[0].text
+
+    # Standalone bold gets its own block type
+    blocks, _ = parser.parse("**All bold**")
+    assert blocks[0].type.value == "bold"
+
+    # Code inline splits into separate blocks (needs background)
+    blocks, _ = parser.parse("Use `git pull` to update.")
     types = [b.type.value for b in blocks]
-    assert "bold" in types
-    assert "italic" in types
     assert "code_inline" in types
-    # bold text preserved
-    bold_blocks = [b for b in blocks if b.type.value == "bold"]
-    assert bold_blocks[0].text == "bold"
-    # code preserved
     code_blocks = [b for b in blocks if b.type.value == "code_inline"]
-    assert code_blocks[0].text == "code"
+    assert code_blocks[0].text == "git pull"
 
 
 def test_link_stripping():
@@ -128,9 +134,9 @@ def test_table():
     blocks, _ = parser.parse("| A | B |\n|---|---|\n| 1 | 2 |")
 
     table_blocks = [b for b in blocks if b.type.value == "table"]
-    assert len(table_blocks) == 2  # header + 1 row
-    assert "A" in table_blocks[0].text
-    assert "1" in table_blocks[1].text
+    assert len(table_blocks) == 1  # 1 data row as card
+    assert "A: 1" in table_blocks[0].text
+    assert "B: 2" in table_blocks[0].text
 
 
 def test_truncation():
