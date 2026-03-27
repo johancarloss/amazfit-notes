@@ -16,8 +16,10 @@ function cacheKey(method, params) {
 export function getCached(method, params) {
   try {
     const raw = localStorage.getItem(cacheKey(method, params));
-    if (!raw) return null;
-    return JSON.parse(raw);
+    if (raw === undefined || raw === null || raw === false) return null;
+    // Zepp OS LocalStorage stores any type natively.
+    // Handle both: legacy string values (JSON) and native objects.
+    return typeof raw === "string" ? JSON.parse(raw) : raw;
   } catch (e) {
     return null;
   }
@@ -25,7 +27,9 @@ export function getCached(method, params) {
 
 export function setCache(method, params, data) {
   try {
-    localStorage.setItem(cacheKey(method, params), JSON.stringify(data));
+    // Store as native object — Zepp OS LocalStorage accepts any type.
+    // Avoids creating large JSON strings that may exceed per-key limits.
+    localStorage.setItem(cacheKey(method, params), data);
     localStorage.setItem("lastSync", Date.now().toString());
   } catch (e) {
     // Storage full — ignore
