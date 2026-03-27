@@ -3,9 +3,8 @@ from src.services.markdown_parser import MarkdownParser
 
 def test_headings():
     parser = MarkdownParser()
-    blocks, truncated = parser.parse("# H1\n## H2\n### H3\n#### H4\n##### H5\n###### H6")
+    blocks = parser.parse("# H1\n## H2\n### H3\n#### H4\n##### H5\n###### H6")
 
-    assert not truncated
     types = [b.type.value for b in blocks]
     assert types == ["h1", "h2", "h3", "h4", "h5", "h6"]
     assert blocks[0].text == "H1"
@@ -14,7 +13,7 @@ def test_headings():
 
 def test_paragraph():
     parser = MarkdownParser()
-    blocks, _ = parser.parse("Simple paragraph text.\n\nAnother paragraph.")
+    blocks = parser.parse("Simple paragraph text.\n\nAnother paragraph.")
 
     paragraphs = [b for b in blocks if b.type.value == "paragraph"]
     assert len(paragraphs) == 2
@@ -25,18 +24,18 @@ def test_inline_formatting():
     parser = MarkdownParser()
 
     # Bold/italic inline stay in the same paragraph (no line break)
-    blocks, _ = parser.parse("Text with **bold** and *italic* here.")
+    blocks = parser.parse("Text with **bold** and *italic* here.")
     assert len(blocks) == 1
     assert blocks[0].type.value == "paragraph"
     assert "bold" in blocks[0].text
     assert "italic" in blocks[0].text
 
     # Standalone bold gets its own block type
-    blocks, _ = parser.parse("**All bold**")
+    blocks = parser.parse("**All bold**")
     assert blocks[0].type.value == "bold"
 
     # Code inline splits into separate blocks (needs background)
-    blocks, _ = parser.parse("Use `git pull` to update.")
+    blocks = parser.parse("Use `git pull` to update.")
     types = [b.type.value for b in blocks]
     assert "code_inline" in types
     code_blocks = [b for b in blocks if b.type.value == "code_inline"]
@@ -45,14 +44,14 @@ def test_inline_formatting():
 
 def test_link_stripping():
     parser = MarkdownParser()
-    blocks, _ = parser.parse("[Obsidian](https://obsidian.md) is great")
+    blocks = parser.parse("[Obsidian](https://obsidian.md) is great")
 
     assert blocks[0].text == "Obsidian is great"
 
 
 def test_unordered_list():
     parser = MarkdownParser()
-    blocks, _ = parser.parse("- Item A\n- Item B\n- Item C")
+    blocks = parser.parse("- Item A\n- Item B\n- Item C")
 
     ul_blocks = [b for b in blocks if b.type.value == "ul"]
     assert len(ul_blocks) == 3
@@ -62,7 +61,7 @@ def test_unordered_list():
 
 def test_nested_list():
     parser = MarkdownParser()
-    blocks, _ = parser.parse("- Parent\n  - Child\n  - Child 2\n- Parent 2")
+    blocks = parser.parse("- Parent\n  - Child\n  - Child 2\n- Parent 2")
 
     assert blocks[0].indent == 0
     assert blocks[0].text == "Parent"
@@ -73,7 +72,7 @@ def test_nested_list():
 
 def test_ordered_list():
     parser = MarkdownParser()
-    blocks, _ = parser.parse("1. First\n2. Second\n3. Third")
+    blocks = parser.parse("1. First\n2. Second\n3. Third")
 
     ol_blocks = [b for b in blocks if b.type.value == "ol"]
     assert len(ol_blocks) == 3
@@ -83,7 +82,7 @@ def test_ordered_list():
 
 def test_checkboxes():
     parser = MarkdownParser()
-    blocks, _ = parser.parse("- [x] Done\n- [ ] Pending")
+    blocks = parser.parse("- [x] Done\n- [ ] Pending")
 
     assert blocks[0].type.value == "checkbox_checked"
     assert blocks[0].text == "Done"
@@ -93,7 +92,7 @@ def test_checkboxes():
 
 def test_code_block():
     parser = MarkdownParser()
-    blocks, _ = parser.parse("```python\nprint('hello')\n```")
+    blocks = parser.parse("```python\nprint('hello')\n```")
 
     code = [b for b in blocks if b.type.value == "code_block"]
     assert len(code) == 1
@@ -103,7 +102,7 @@ def test_code_block():
 
 def test_blockquote():
     parser = MarkdownParser()
-    blocks, _ = parser.parse("> Quote text here")
+    blocks = parser.parse("> Quote text here")
 
     bq = [b for b in blocks if b.type.value == "blockquote"]
     assert len(bq) == 1
@@ -113,7 +112,7 @@ def test_blockquote():
 
 def test_nested_blockquote():
     parser = MarkdownParser()
-    blocks, _ = parser.parse("> Outer\n> > Inner")
+    blocks = parser.parse("> Outer\n> > Inner")
 
     bq = [b for b in blocks if b.type.value == "blockquote"]
     assert len(bq) == 2
@@ -123,7 +122,7 @@ def test_nested_blockquote():
 
 def test_horizontal_rule():
     parser = MarkdownParser()
-    blocks, _ = parser.parse("---")
+    blocks = parser.parse("---")
 
     hr = [b for b in blocks if b.type.value == "hr"]
     assert len(hr) == 1
@@ -131,7 +130,7 @@ def test_horizontal_rule():
 
 def test_table():
     parser = MarkdownParser()
-    blocks, _ = parser.parse("| A | B |\n|---|---|\n| 1 | 2 |")
+    blocks = parser.parse("| A | B |\n|---|---|\n| 1 | 2 |")
 
     table_blocks = [b for b in blocks if b.type.value == "table"]
     assert len(table_blocks) == 1  # 1 data row as card
@@ -139,13 +138,12 @@ def test_table():
     assert "B: 2" in table_blocks[0].text
 
 
-def test_truncation():
+def test_large_document():
     parser = MarkdownParser()
     md = "\n\n".join([f"Paragraph {i}" for i in range(300)])
-    blocks, truncated = parser.parse(md, max_blocks=10)
+    blocks = parser.parse(md)
 
-    assert truncated
-    assert len(blocks) == 10
+    assert len(blocks) == 300
 
 
 def test_real_diary_format():
@@ -175,9 +173,8 @@ def test_real_diary_format():
 
 ---
 """
-    blocks, truncated = parser.parse(md)
+    blocks = parser.parse(md)
 
-    assert not truncated
     types = [b.type.value for b in blocks]
 
     assert "h1" in types
