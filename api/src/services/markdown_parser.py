@@ -19,22 +19,15 @@ class MarkdownParser:
             plugins=["strikethrough", "table", "task_lists"],
         )
 
-    def parse(
-        self, content: str, max_blocks: int = 200
-    ) -> tuple[list[MarkdownBlock], bool]:
-        """Parse markdown into flat list of blocks.
-
-        Returns (blocks, truncated).
-        """
+    def parse(self, content: str) -> list[MarkdownBlock]:
+        """Parse markdown into flat list of all blocks."""
         ast_tokens = self._markdown(content)
         blocks: list[MarkdownBlock] = []
 
         for token in ast_tokens:
             blocks.extend(self._convert_token(token, indent=0))
-            if len(blocks) >= max_blocks:
-                return blocks[:max_blocks], True
 
-        return blocks, False
+        return blocks
 
     def _convert_token(
         self, token: dict, indent: int = 0

@@ -36,5 +36,8 @@ class NoteBlocksResponse(BaseModel):
     path: str
     title: str
     block_count: int
+    total_blocks: int
     blocks: list[MarkdownBlock]
-    truncated: bool = False
+    has_more: bool = False
+    offset: int = 0
+    limit: int = 25

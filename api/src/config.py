@@ -8,8 +8,7 @@ class Settings(BaseSettings):
     host: str = "127.0.0.1"
     port: int = 8100
     watch_folder: str = "Watch"
-    allowed_folders: list[str] = ["Watch", "Diarios", "Projetos"]
-    max_note_size_bytes: int = 100_000
-    max_blocks: int = 200
+    allowed_folders: list[str] = ["Watch"]
+    max_note_size_bytes: int = 500_000
 
     model_config = {"env_prefix": "AMAZFIT_", "env_file": ".env"}

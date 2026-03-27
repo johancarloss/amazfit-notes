@@ -14,7 +14,8 @@ _parser = MarkdownParser()
 @router.get("/notes/{path:path}", response_model=NoteBlocksResponse)
 async def get_note_blocks(
     path: str,
-    max_blocks: int = Query(default=200, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=25, ge=1, le=100),
     vault: VaultReader = Depends(get_vault_reader),
     settings: Settings = Depends(get_settings),
 ) -> NoteBlocksResponse:
@@ -26,17 +27,19 @@ async def get_note_blocks(
         raise HTTPException(status_code=403, detail=str(exc))
 
     if metadata.size_bytes > settings.max_note_size_bytes:
-        raise HTTPException(
-            status_code=413,
-            detail=f"Note too large: {metadata.size_bytes} bytes (max {settings.max_note_size_bytes})",
-        )
+        raise HTTPException(status_code=413, detail="Note too large")
 
-    blocks, truncated = _parser.parse(content, max_blocks=max_blocks)
+    all_blocks = _parser.parse(content)
+    total = len(all_blocks)
+    page_blocks = all_blocks[offset : offset + limit]
 
     return NoteBlocksResponse(
         path=metadata.path,
         title=metadata.title,
-        block_count=len(blocks),
-        blocks=blocks,
-        truncated=truncated,
+        block_count=len(page_blocks),
+        total_blocks=total,
+        blocks=page_blocks,
+        has_more=(offset + limit) < total,
+        offset=offset,
+        limit=limit,
     )
