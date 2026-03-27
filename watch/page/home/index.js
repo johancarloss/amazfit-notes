@@ -7,19 +7,19 @@ import { buildList } from "../shared/list-builder";
 import { showError, showOfflineIndicator, createLoadingWidget } from "../shared/ui-helpers";
 import { MSG } from "../../lib/communication";
 import { fetchWithCache } from "../../lib/fetch-with-cache";
-import { keepAlive, getSession, clearSession, saveSession } from "../../lib/session";
+import { keepAlive, getSession, clearSession } from "../../lib/session";
 
 Page(
   BasePage({
-    state: { notes: [], offline: false },
+    state: { items: [], offline: false },
 
     build() {
       keepAlive();
-      clearSession(); // Home = no session to restore
 
-      // Check if there's a saved session (user was reading a note)
+      // Restore session if user was reading a note
       const session = getSession();
       if (session && session.url) {
+        clearSession();
         replace({ url: session.url, params: session.params || "" });
         return;
       }
@@ -38,7 +38,7 @@ Page(
         this, MSG.GET_WATCH_NOTES, {},
         (result, isOffline) => {
           self.state.offline = isOffline;
-          self.state.notes = (result.items || []).filter((i) => i.type === "note");
+          self.state.items = result.items || [];
           self.renderList();
         },
         (err) => showError(self.loadingWidget, err)
@@ -47,11 +47,11 @@ Page(
 
     renderList() {
       deleteWidget(this.loadingWidget);
-      const notes = this.state.notes;
+      const allItems = this.state.items;
 
       if (this.state.offline) showOfflineIndicator();
 
-      if (notes.length === 0) {
+      if (allItems.length === 0) {
         createWidget(widget.TEXT, {
           x: CONTENT.MARGIN_X, y: SCREEN.CENTER_Y - 20,
           w: CONTENT.WIDTH, h: 40,
@@ -62,24 +62,28 @@ Page(
       }
 
       const listY = CONTENT.MARGIN_TOP + (this.state.offline ? 60 : 50);
-      const listH = SCREEN.HEIGHT - listY - 70;
-      const items = notes.map((n) => ({ title: n.name, subtitle: n.path }));
+      const listH = SCREEN.HEIGHT - listY - 10;
+
+      const items = allItems.map((item) => ({
+        title: item.name,
+        subtitle: item.type === "folder"
+          ? item.note_count + " notas"
+          : item.path,
+      }));
 
       buildList(listY, listH, items, (index) => {
-        const note = notes[index];
-        push({
-          url: "page/note-view/index",
-          params: JSON.stringify({ path: note.path, title: note.name }),
-        });
-      });
-
-      createWidget(widget.BUTTON, {
-        x: SCREEN.CENTER_X - 100, y: SCREEN.HEIGHT - 62,
-        w: 200, h: 38,
-        normal_color: COLORS.BG_CARD, press_color: 0x333333,
-        radius: 19,
-        text: "Todas as Pastas", text_size: 15, color: COLORS.TEXT_SECONDARY,
-        click_func: () => push({ url: "page/folders/index", params: "" }),
+        const item = allItems[index];
+        if (item.type === "folder") {
+          push({
+            url: "page/folders/index",
+            params: JSON.stringify({ path: item.path }),
+          });
+        } else {
+          push({
+            url: "page/note-view/index",
+            params: JSON.stringify({ path: item.path, title: item.name }),
+          });
+        }
       });
     },
   })

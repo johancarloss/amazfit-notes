@@ -40,9 +40,10 @@ AppSideService(
         fetchFromApi("/folders/" + (params.path || ""), res);
       } else if (method === "GET_NOTE_BLOCKS") {
         let endpoint = "/notes/" + (params.path || "");
-        if (params.max_blocks) {
-          endpoint += "?max_blocks=" + params.max_blocks;
-        }
+        const qs = [];
+        if (params.offset !== undefined) qs.push("offset=" + params.offset);
+        if (params.limit !== undefined) qs.push("limit=" + params.limit);
+        if (qs.length > 0) endpoint += "?" + qs.join("&");
         fetchFromApi(endpoint, res);
       } else {
         res(null, { result: { error: "Unknown method: " + method } });

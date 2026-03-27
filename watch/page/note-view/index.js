@@ -19,6 +19,7 @@ Page(
       blocks: [],
       offline: false,
       currentPage: 0,
+      totalBlocks: 0,
       totalPages: 0,
       container: null,
     },
@@ -37,23 +38,28 @@ Page(
 
     build() {
       keepAlive();
-
       saveSession("page/note-view/index", JSON.stringify({
         path: this.state.path,
         title: this.state.title,
       }));
 
       this.loadingWidget = createLoadingWidget("Carregando nota...");
+      this.fetchPage(0);
+    },
+
+    fetchPage(pageNumber) {
       const self = this;
+      const offset = pageNumber * BLOCKS_PER_PAGE;
 
       fetchWithCache(
         this, MSG.GET_NOTE_BLOCKS,
-        { path: this.state.path, max_blocks: 500 },
+        { path: this.state.path, offset: offset, limit: BLOCKS_PER_PAGE },
         (result, isOffline) => {
           self.state.offline = isOffline;
           self.state.blocks = result.blocks || [];
-          self.state.totalPages = Math.ceil(self.state.blocks.length / BLOCKS_PER_PAGE);
-          self.state.currentPage = 0;
+          self.state.totalBlocks = result.total_blocks || result.block_count || 0;
+          self.state.totalPages = Math.ceil(self.state.totalBlocks / BLOCKS_PER_PAGE);
+          self.state.currentPage = pageNumber;
           self.renderPage();
         },
         (err) => showError(self.loadingWidget, err)
@@ -61,9 +67,10 @@ Page(
     },
 
     renderPage() {
-      deleteWidget(this.loadingWidget);
-
-      // Destroy previous container if exists (page change)
+      if (this.loadingWidget) {
+        deleteWidget(this.loadingWidget);
+        this.loadingWidget = null;
+      }
       if (this.state.container) {
         deleteWidget(this.state.container);
         this.state.container = null;
@@ -72,8 +79,9 @@ Page(
       const blocks = this.state.blocks;
       const page = this.state.currentPage;
       const totalPages = this.state.totalPages;
+      const self = this;
 
-      if (blocks.length === 0) {
+      if (blocks.length === 0 && page === 0) {
         createWidget(widget.TEXT, {
           x: CONTENT.MARGIN_X, y: SCREEN.CENTER_Y - 20,
           w: CONTENT.WIDTH, h: 40,
@@ -83,12 +91,6 @@ Page(
         return;
       }
 
-      // Slice blocks for current page
-      const start = page * BLOCKS_PER_PAGE;
-      const end = Math.min(start + BLOCKS_PER_PAGE, blocks.length);
-      const pageBlocks = blocks.slice(start, end);
-
-      // Create scrollable container
       const container = createWidget(widget.VIEW_CONTAINER, {
         x: 0, y: 0,
         w: SCREEN.WIDTH, h: SCREEN.HEIGHT,
@@ -97,56 +99,98 @@ Page(
       });
       this.state.container = container;
 
-      // Page indicator at top
-      const pageLabel = "Pag. " + (page + 1) + "/" + totalPages;
+      // === TOP NAVIGATION BAR ===
+      let navY = 15;
+
+      // Page indicator
+      const label = "Pag. " + (page + 1) + "/" + totalPages +
+        (this.state.offline ? " (offline)" : "");
       container.createWidget(widget.TEXT, {
-        x: CONTENT.MARGIN_X, y: 15,
+        x: CONTENT.MARGIN_X, y: navY,
         w: CONTENT.WIDTH, h: 20,
-        text: this.state.offline ? pageLabel + " (offline)" : pageLabel,
-        text_size: 12,
+        text: label, text_size: 12,
         color: COLORS.TEXT_DIM, align_h: align.CENTER_H,
       });
+      navY += 22;
 
-      // Previous page button (if not first page)
-      if (page > 0) {
-        const self = this;
-        container.createWidget(widget.BUTTON, {
-          x: CONTENT.MARGIN_X + 60, y: 32,
-          w: CONTENT.WIDTH - 120, h: 34,
-          normal_color: COLORS.BG_CARD, press_color: 0x333333,
-          radius: 17,
-          text: "Pagina anterior", text_size: 14, color: COLORS.TEXT_SECONDARY,
-          click_func: () => {
-            self.state.currentPage--;
-            self.renderPage();
-          },
-        });
+      // Navigation buttons side by side
+      if (totalPages > 1) {
+        const btnW = (CONTENT.WIDTH - 16) / 2; // two buttons with gap
+        const btnH = 34;
+
+        // Previous button (left)
+        if (page > 0) {
+          container.createWidget(widget.BUTTON, {
+            x: CONTENT.MARGIN_X, y: navY,
+            w: btnW, h: btnH,
+            normal_color: COLORS.BG_CARD, press_color: 0x333333,
+            radius: 17,
+            text: "\u25C0 Anterior", text_size: 13, color: COLORS.TEXT_SECONDARY,
+            click_func: () => {
+              self.loadingWidget = createLoadingWidget("Carregando...");
+              self.fetchPage(self.state.currentPage - 1);
+            },
+          });
+        }
+
+        // Next button (right)
+        if (page < totalPages - 1) {
+          container.createWidget(widget.BUTTON, {
+            x: CONTENT.MARGIN_X + btnW + 16, y: navY,
+            w: btnW, h: btnH,
+            normal_color: COLORS.BG_CARD, press_color: 0x333333,
+            radius: 17,
+            text: "Proxima \u25B6", text_size: 13, color: COLORS.ACCENT_H2,
+            click_func: () => {
+              self.loadingWidget = createLoadingWidget("Carregando...");
+              self.fetchPage(self.state.currentPage + 1);
+            },
+          });
+        }
+
+        navY += btnH + 6;
       }
 
-      // Render markdown blocks
-      const contentStartY = page > 0 ? 30 : 0; // extra space for "previous" button
-      const totalHeight = renderMarkdownBlocks(container, pageBlocks, CONTENT.WIDTH, contentStartY);
+      // === CONTENT ===
+      const extraTop = navY - CONTENT.MARGIN_TOP;
+      const totalHeight = renderMarkdownBlocks(container, blocks, CONTENT.WIDTH, extraTop);
 
-      // Next page button (if not last page)
-      if (page < totalPages - 1) {
-        const self = this;
-        const btnY = totalHeight + 10;
-        container.createWidget(widget.BUTTON, {
-          x: CONTENT.MARGIN_X + 40, y: btnY,
-          w: CONTENT.WIDTH - 80, h: 40,
-          normal_color: COLORS.BG_CARD, press_color: 0x333333,
-          radius: 20,
-          text: "Proxima pagina", text_size: 15, color: COLORS.ACCENT_H2,
-          click_func: () => {
-            self.state.currentPage++;
-            self.renderPage();
-          },
-        });
+      // === BOTTOM NAVIGATION (repeat for long pages) ===
+      if (totalPages > 1) {
+        const bottomY = totalHeight + 10;
+        const btnW = (CONTENT.WIDTH - 16) / 2;
+        const btnH = 38;
+
+        if (page > 0) {
+          container.createWidget(widget.BUTTON, {
+            x: CONTENT.MARGIN_X, y: bottomY,
+            w: btnW, h: btnH,
+            normal_color: COLORS.BG_CARD, press_color: 0x333333,
+            radius: 19,
+            text: "\u25C0 Anterior", text_size: 14, color: COLORS.TEXT_SECONDARY,
+            click_func: () => {
+              self.loadingWidget = createLoadingWidget("Carregando...");
+              self.fetchPage(self.state.currentPage - 1);
+            },
+          });
+        }
+
+        if (page < totalPages - 1) {
+          container.createWidget(widget.BUTTON, {
+            x: CONTENT.MARGIN_X + btnW + 16, y: bottomY,
+            w: btnW, h: btnH,
+            normal_color: COLORS.BG_CARD, press_color: 0x333333,
+            radius: 19,
+            text: "Proxima \u25B6", text_size: 14, color: COLORS.ACCENT_H2,
+            click_func: () => {
+              self.loadingWidget = createLoadingWidget("Carregando...");
+              self.fetchPage(self.state.currentPage + 1);
+            },
+          });
+        }
       }
 
-      // Scroll to top on page change
       try { scrollTo({ y: 0 }); } catch (e) { /* ignore */ }
-
       createWidget(widget.PAGE_SCROLLBAR, {});
     },
 
